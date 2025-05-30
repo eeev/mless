@@ -7,3 +7,5 @@ Task solutions for the Machine Learning for Earth System Science course at the U
 1. Clone this repository
 2. Run `pip -i requirements.txt` in the repository root
 3. Open and/or execute any desired notebook from the `/homework*` folders
+
+_Author(s):_ Martin Schultz (original repository), Philipp Kuhn (this fork), 2025
