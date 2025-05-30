@@ -1,5 +1,11 @@
-# mless
-Notebooks and other stuff for the lecture _Machine learning for the Earth system_ at the University of Cologne, Germany
+# MLESS
 
-_Author:_ Martin Schultz, 2025
+Task solutions for the Machine Learning for Earth System Science course at the University of Cologne.
 
+## Quick Start
+
+1. Clone this repository
+2. Run `pip -i requirements.txt` in the repository root
+3. Open and/or execute any desired notebook from the `/homework*` folders
+
+_Author(s):_ Martin Schultz (original repository), Philipp Kuhn (this fork), 2025
