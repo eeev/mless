@@ -46,14 +46,24 @@ accordingly, X_test_corrected.pkl and Y_test_corrected.pkl are used for testing 
 #### C) Model Comparison
 
 Now that the data is standardized across models, here is how it is being used:
-- PatchTST: Trained on station code "DENW094" using default train/test splits from .pkl's
-- MLP, LSTM: Trained on all stations
+- PatchTST, MLP, LSTM: Trained on all stations
 - AR (SARIMAX): Fitted on the pkl's test sequences
 
+First, run inference for all models based on the same timeframe and a fixed station:
 
+![models](univariate-models.png)
 
+While this gives a good first impression, where it may become apparent that "trained" models such as PatchTST, LSTM and MLP respect an upwards trend, while SARIMA as a statistical model does not include "global" information on the possible following period, the question whether similar observations hold across vastly different contexts holds true remains. Therefore, consider the following plots showing all model inferences across different samples fixed by one station:
+
+![models-samples](univariate-models-samples.png)
+
+Across different episodes, we see it depends on the context whether a model's prediction is more accurate than the others. However, generally we can say that LSTM or PatchTST perform best overall, while being often very closely together. With some samples, SARIMA is surprisingly strong and might outperform the others, and this could be due to the fact that SARIMA might ignore some "global" influences, which it simply would not account for, and other models are punished by taking into account overall trends where there are none. 
+
+Evaluating training, it is not very surprising that the LSTM took longest to train (LSTM > PatchTST > MLP), due to the required sequential processing by its recurrent nature, which is especially slow on the CPU. With PatchTST, it might be due to the self-attention mechanism & multiple transformer layers; for the MLP, this could still be performed on the CPU very well.
 
 ### 2)
+
+
 
 ### 3)
 
