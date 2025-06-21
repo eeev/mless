@@ -63,6 +63,29 @@ Evaluating training, it is not very surprising that the LSTM took longest to tra
 
 ### 2)
 
+#### A) Idea
+
+To get started, I would be interested to know whether SARIMAX would perform significantly better using multivariate data. My idea is to copy notebook 3 and implement it there. I would use notebook 1 to download ozone data for the three stations I already have temperature data on. Then, run inference in the multivariate case.
+
+#### B) Implementation
+
+Downloading the normalized multivariate data for the three stations from gdrive, I can get started immediately. However, I notice the data does not have the expected format compared to previous univariate variant. This is mainly due to how the data is merged (cannot just run sequence creation).
+
+While this means I cannot just reuse my previous implementation, I can still use similar timeframes for context + future ground truth, but these might contain holes. Therefore, my code also contains a search for good data quality sections of the data, where not as many holes are present for comparison to the univariate case. 
+
+#### C) Model-Specifics
+
+First, predicting temperature using o3 as an exogenous variable indeed yields the desired improvement by using the multivariate model. In quick tests, the model is often around 20% better at predicting the temperature than using just the temperature. However, the task was to use temperature to predict the ozone concentration.
+
+Running the same model again but switching columns results in a terribly bad prediction, which is almost a flat horizontal line for uni-/multivariate case; this is due to the model parameters not chosen appropriate. For example, for temperature assuming 24-hour seasonality is reasonable, but for o3 this is not appropriate.
+
+![sarimax](sarimax-multi.png)
+
+To conclude, it does not make a lot of sense to use SARIMAX to predict o3 for several reasons:
+- temperature values show often a smooth, transitory process, with predictable daily cycles and linear physical processes underneath
+- o3 on the other hand is rather "chaotic", depends on complex photochemistry, non-linear reactions with temperature
+
+I re-plot the model with different orders and seasonalities, but this does not improve the output by much. Using a different model would only make sense here.
 
 
 ### 3)
