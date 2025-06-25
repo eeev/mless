@@ -35,7 +35,7 @@ After re-training, I plotted all 4 model predictions in one panel, it is adjuste
 
 As a result, I compare model performance across different time episodes. At this time I assume my plotting code/notebook is adjustable to different stations; It should also be possible to run inference for different stations and use the trained models as-is.
 
-> I noticed an issue with notebook 3, where the .pkl data is prepared. To start, the `create_sequences(...)` method creates sequences for all (3) stations correctly and concatenates results. However, then the train/test split is performed temporally across all stations. This is problematic, and we can easily check this: if querying the pkl for train/test datasets, we find that no test dataset for station "DEBW073" exists, or rather, said station is not part of the global test dataset. The last cells in notebook 3 elaborate on this.
+> I noticed an issue (or is this by design?) with notebook 3, where the .pkl data is prepared. To start, the `create_sequences(...)` method creates sequences for all (3) stations correctly and concatenates results. However, then the train/test split is performed temporally across all stations. This is problematic, and we can easily check this: if querying the pkl for train/test datasets, we find that no test dataset for station "DEBW073" exists, or rather, said station is not part of the global test dataset. The last cells in notebook 3 elaborate on this.
 
 In order to avoid confusion on the construction of train/test datasets, and which were used for what models, I implemented the following in notebook 3:
 - X_train_corrected.pkl - contains sequenced priors for all 3 stations based on 80% of per-station data for training
@@ -73,11 +73,15 @@ Downloading the normalized multivariate data for the three stations from gdrive,
 
 While this means I cannot just reuse my previous implementation, I can still use similar timeframes for context + future ground truth, but these might contain holes. Therefore, my code also contains a search for good data quality sections of the data, where not as many holes are present for comparison to the univariate case. 
 
-#### C) Model-Specifics
+#### C) Results
 
-First, predicting temperature using o3 as an exogenous variable indeed yields the desired improvement by using the multivariate model. In quick tests, the model is often around 20% better at predicting the temperature than using just the temperature. However, the task was to use temperature to predict the ozone concentration.
+First, predicting temperature using true future o3 values as an exogenous variable indeed yields the desired improvement by using the multivariate model. In quick tests, the model is often around 20% better at predicting the temperature than using just the temperature:
 
-Running the same model again but switching columns results in a terribly bad prediction, which is almost a flat horizontal line for uni-/multivariate case; this is due to the model parameters not chosen appropriate. For example, for temperature assuming 24-hour seasonality is reasonable, but for o3 this is not appropriate.
+![sarimax](sarimax_temp_forecast_multi.png)
+
+In reality, it would not be possible to forecast temperature using true future o3 values, but after testing a couple forecasts with lagged/prior o3 values still yields a performance increase, although of course this time smaller than using true future values.
+However, the task was to use temperature to predict the ozone concentration;
+Running the same model again but "switching columns" (i.e., predicting o3 using temp as exogenous) results in a terribly bad prediction, which is almost a flat horizontal line for both the uni-/multivariate case; at first thought, this is due to the model parameters not chosen appropriate. For example, for temperature assuming 24-hour seasonality is reasonable, but for o3 this might not be appropriate.
 
 ![sarimax](sarimax-multi.png)
 
@@ -85,8 +89,32 @@ To conclude, it does not make a lot of sense to use SARIMAX to predict o3 for se
 - temperature values show often a smooth, transitory process, with predictable daily cycles and linear physical processes underneath
 - o3 on the other hand is rather "chaotic", depends on complex photochemistry, non-linear reactions with temperature
 
-I re-plot the model with different orders and seasonalities, but this does not improve the output by much. Using a different model would only make sense here.
+I re-plot the model with different orders and seasonalities, but this does not improve the output by much (see notebook `3_AutoRegressive_Models_Multivariate`). Using a different model would only make sense here.
 
+#### Correction
+
+In Retrospective, after finishing the last task, I notice to have used actual future temperature values to forecast the o3 concentration. While this is unrealistic in practice (see task 3), I would argue that exploiting the autoregressive feature of temperature time series data, this difference (using a lagged temperature vs. true future) would not makes as much of a difference in this scenario; even more so, using "perfect" temperature data for the forecast and only achieving a small improvement in the forecast indeed shows that the temperature's influence in the multivariate case on o3 forecasts is negligible when using SARIMAX. Also, by using perfect temperature future data, we establish an "ideal" baseline for comparison in task 3.
 
 ### 3)
 
+#### A) Idea
+
+At first, I am unsure whether I understand the task correctly. So my understanding would be: like I mentioned previously using true future or historic o3 data and temperature data as input to the multivariate SARIMAX model, we can get an improved temperature forecast in comparison to the univariate case. So, using this temperature forecast, and historic o3 time series data, we want to compare our new o3 prediction to the one we previously calculated in exercise 2. So I will make a copy of my notebook `3_AutoRegressive_Models_Multivariate`, namely `3_AutoRegressive_Models_Multivariate_Cascaded`, and implement the steps there.
+
+#### B) Findings
+
+![sarimax_casc](sarimax_multi_cascaded.png)
+
+As an intermediate result, we see (comparing the RMSE) that the performance has gotten worse, this is mainly due to the fact that previously, in our multivariate forecast, we used actual future temperature values, which might not make a lot of sense in the real world, but for our testing setup is okay. 
+
+In a sense, the findings here are still valid: the standard multivariate case is stronger than the univariate one, mainly because we supply information that is correlated to some degree, and we have actual future data. However, if we predict the future, error occurs. This error then propagates to the new o3 forecast results also. Additionally, there would also be error within the temperature forecast itself; from its inputs, because we could not use true o3 values to forecast temperature as accurate as we did.
+
+For this reason, our multivariate cascaded forecast must be worse than the multivariate forecast with true future data, but we also find it is even worse than the univariate case, which may come as a surprise. On the other hand, due to overall poor performance of SARIMAX when forecasting o3, we cannot say this finding is really significant.
+
+At this point, one could argue other parameters for SARIMAX might yield more performance, but we have seen in task 2 that SARIMAX even with different parameters does not yield a much better performance forecasting o3, which would also apply here. Again, the practical recommendation would be to just choose another model with the ability to capture non-linear processes, which mathematically, for example a single-layer neural network could do; or, of course PatchTST.
+
+#### C) Summary
+
+Because some previous parts were hard to read, regarding what true data was used when and where, here is a quick summary:
+- In 2c), I implement the multivariate case to predict temperature as a quick test, using true o3 future values, this forecast is much more accurate. The accuracy is less, but still better than the univariate case when using lagged o3 values, as in practice the true future values are unknown.
+- In 3b), I elaborate on the prior quick test, and use the predicted temperature to build the cascaded forecast. Note that here, the predicted temperature was forecasted using true o3 values, which I argue is not as much an issue, we just need to remember that the forecast is slightly "better"
